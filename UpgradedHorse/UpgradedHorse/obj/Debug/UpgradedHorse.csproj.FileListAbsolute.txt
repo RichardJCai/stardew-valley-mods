@@ -1,0 +1,4 @@
+/Users/richardcai/projects/stardew_valley/UpgradedHorse/UpgradedHorse/bin/Debug/UpgradedHorse.dll
+/Users/richardcai/projects/stardew_valley/UpgradedHorse/UpgradedHorse/bin/Debug/UpgradedHorse.pdb
+/Users/richardcai/projects/stardew_valley/UpgradedHorse/UpgradedHorse/obj/Debug/UpgradedHorse.dll
+/Users/richardcai/projects/stardew_valley/UpgradedHorse/UpgradedHorse/obj/Debug/UpgradedHorse.pdb
