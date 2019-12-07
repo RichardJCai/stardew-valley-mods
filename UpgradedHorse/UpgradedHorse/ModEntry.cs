@@ -3,18 +3,26 @@ using Microsoft.Xna.Framework;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewValley.Characters;
-using StardewModdingAPI.Utilities;
 using StardewValley;
 using System.Linq;
+using StardewValley.Menus;
+using System.Collections.Generic;
+using StardewValley.Buildings;
+using StardewValley.Locations;
 
 
-namespace UpgradedHorse
+namespace UpgradedHorseMod
 {
     /// <summary>The mod entry point.</summary>
     public class ModEntry : Mod
     {
         public static bool horseFed = false;
         public static int addedHorseSpeed = 0;
+
+        public static int openMenuX;
+        public static int openMenuY;
+
+        public const int INVENTORY_TAB = 0;
 
         /*********
         ** Public methods
@@ -26,6 +34,7 @@ namespace UpgradedHorse
             helper.Events.Input.ButtonPressed += this.OnButtonPressed;
             helper.Events.GameLoop.UpdateTicked += this.OnUpdateTicked;
             helper.Events.GameLoop.DayStarted += this.OnDayStarted;
+            Helper.Events.Display.MenuChanged += this.OnMenuChanged;
         }
 
         ///// <summary>The method called after a new day starts.</summary>
@@ -59,6 +68,13 @@ namespace UpgradedHorse
                     cursorPosition.X + Game1.viewport.X,
                     cursorPosition.Y + Game1.viewport.Y);
             }
+
+            if (e.Button == SButton.MouseLeft)
+            {
+                Point cursorPosition = Game1.getMousePosition();
+                OpenHorseMenu(cursorPosition.X,
+                          cursorPosition.Y);
+            }
         }
 
         private void OnDayStarted(object sender, EventArgs e)
@@ -90,9 +106,31 @@ namespace UpgradedHorse
                 Game1.player.addedSpeed -= addedHorseSpeed;
                 addedHorseSpeed = 0;
             }
-            this.Monitor.Log(string.Format("Speed: {0}", Game1.player.addedSpeed), LogLevel.Debug);
+            this.Monitor.Log(string.Format("Speed: {0}", Game1.player.addedSpeed), LogLevel.Debug); 
         }
 
+        private void OnMenuChanged(object sender, MenuChangedEventArgs args)
+        {
+            if (args.NewMenu is GameMenu gm)
+            {
+                openMenuX = gm.xPositionOnScreen;
+                openMenuY = gm.yPositionOnScreen;
+
+                //Helper.Events.Display.RenderedActiveMenu += drawTest;
+                //Utility.drawWithShadow(b, Game1.mouseCursors,
+                //    new Vector2((float)(
+                //    (double)(gm.xPositionOnScreen + Game1.tileSize * 5 + Game1.pixelZoom * 2) + (double)Math.Max((float)Game1.tileSize, Game1.dialogueFont.MeasureString(Game1.player.name).X / 2f) + (Game1.player.getPetDisplayName() != null ? (double)Math.Max((float)Game1.tileSize, Game1.dialogueFont.MeasureString(Game1.player.getPetDisplayName()).X) : 0.0)), (float)(gm.yPositionOnScreen + IClickableMenu.borderWidth + IClickableMenu.spaceToClearTopBorder + 7 * Game1.tileSize - Game1.pixelZoom)), new Rectangle(193, 192, 16, 16), Color.White, 0.0f, Vector2.Zero,
+                //    (float)Game1.pixelZoom, false, -1f, -1, -1, 0.35f);
+            }
+            else if (args.OldMenu is GameMenu ogm)
+            {
+                openMenuX = ogm.xPositionOnScreen;
+                openMenuY = ogm.yPositionOnScreen;
+            }
+
+            this.Monitor.Log(string.Format("{0}, {1}", openMenuX, openMenuY), LogLevel.Debug);
+
+        }
 
         private void FeedHorse(GameLocation currentLocation, int x, int y)
         {
@@ -125,6 +163,67 @@ namespace UpgradedHorse
                     }
                 }
             }
+        }
+
+        private void OpenHorseMenu(int x, int y)
+        {
+            if (Game1.activeClickableMenu is GameMenu menu)
+            {
+                this.Monitor.Log(string.Format("{0}", menu.currentTab), LogLevel.Debug);
+                if (menu.currentTab == INVENTORY_TAB)
+                {
+                    Vector2 rectangle = new Vector2((float)((double)(openMenuX + Game1.tileSize * 5 + Game1.pixelZoom * 2) + (double)Math.Max((float)Game1.tileSize, Game1.dialogueFont.MeasureString(Game1.player.name).X / 2f) + (Game1.player.getPetDisplayName() != null ? (double)Math.Max((float)Game1.tileSize, Game1.dialogueFont.MeasureString(Game1.player.getPetDisplayName()).X) : 0.0)), (float)(openMenuY + IClickableMenu.borderWidth + IClickableMenu.spaceToClearTopBorder + 7 * Game1.tileSize - Game1.pixelZoom));
+                    this.Monitor.Log(string.Format("{0}, {1}, {2}, {3}", rectangle.X, x, rectangle.Y, y), LogLevel.Debug);
+
+                    if (Utility.distance((float)x, rectangle.X, (float)y, rectangle.Y) <= 100)
+                    {
+                        Horse playersHorse = FindHorse();
+                        UpgradedHorse horse = new UpgradedHorse(playersHorse);
+                        this.Monitor.Log(
+                            string.Format("Horse name: {0}, {1}", horse.displayName, "test")
+                            );
+                        Game1.activeClickableMenu = (IClickableMenu)new HorseMenu(horse);
+                    }
+                }
+            }
+        }
+
+        /// <summary>Get all available locations.</summary>
+        private IEnumerable<GameLocation> GetLocations()
+        {
+            GameLocation[] mainLocations = (Context.IsMainPlayer ? Game1.locations : this.Helper.Multiplayer.GetActiveLocations()).ToArray();
+
+            foreach (GameLocation location in mainLocations.Concat(MineShaft.activeMines))
+            {
+                yield return location;
+
+                if (location is BuildableGameLocation buildableLocation)
+                {
+                    foreach (Building building in buildableLocation.buildings)
+                    {
+                        if (building.indoors.Value != null)
+                            yield return building.indoors.Value;
+                    }
+                }
+            }
+        }
+
+        /// <summary>Find the current player's horse.</summary>
+        private Horse FindHorse()
+        {
+            foreach (GameLocation location in this.GetLocations())
+            {
+                foreach (Horse horse in location.characters.OfType<Horse>())
+                {
+                    if (horse.rider != null)
+                        continue;
+
+                    if (horse.getOwner() == Game1.player)
+                        return horse;
+                }
+            }
+
+            return null;
         }
 
     }
