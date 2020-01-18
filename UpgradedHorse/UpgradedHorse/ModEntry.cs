@@ -32,9 +32,9 @@ namespace UpgradedHorseMod
         public override void Entry(IModHelper helper)
         {
             helper.Events.Input.ButtonPressed += this.OnButtonPressed;
-            helper.Events.GameLoop.UpdateTicked += this.OnUpdateTicked;
+            helper.Events.GameLoop.UpdateTicking += this.OnUpdateTicking;
             helper.Events.GameLoop.DayStarted += this.OnDayStarted;
-            Helper.Events.Display.MenuChanged += this.OnMenuChanged;
+            helper.Events.Display.MenuChanged += this.OnMenuChanged;
         }
 
         ///// <summary>The method called after a new day starts.</summary>
@@ -92,7 +92,7 @@ namespace UpgradedHorseMod
         /// <summary>Raised after the game state is updated (≈60 times per second).</summary>
         /// <param name="sender">The event sender.</param>
         /// <param name="e">The event arguments.</param>
-        private void OnUpdateTicked(object sender, EventArgs e)
+        private void OnUpdateTicking(object sender, EventArgs e)
         {
             if (!Context.IsPlayerFree)
                 return;
@@ -101,7 +101,8 @@ namespace UpgradedHorseMod
             {
                 addedHorseSpeed = 3;
                 Game1.player.addedSpeed += addedHorseSpeed;
-            } else if (!Game1.player.isRidingHorse() && addedHorseSpeed > 0)
+            }
+            else if (!Game1.player.isRidingHorse() && addedHorseSpeed > 0)
             {
                 Game1.player.addedSpeed -= addedHorseSpeed;
                 addedHorseSpeed = 0;
@@ -177,11 +178,27 @@ namespace UpgradedHorseMod
 
                     if (Utility.distance((float)x, rectangle.X, (float)y, rectangle.Y) <= 100)
                     {
-                        Horse playersHorse = FindHorse();
-                        UpgradedHorse horse = new UpgradedHorse(playersHorse);
+                        String horseName = Game1.player.horseName;
                         this.Monitor.Log(
-                            string.Format("Horse name: {0}, {1}", horse.displayName, "test")
+                            string.Format("Horse name: {0}, {1}", horseName, "test")
                             );
+
+                        HorseData horseData = this.Helper.Data.ReadGlobalData<HorseData>(
+                            String.Format("{0}-horse-data", Game1.player.Name) // Not sure if player name is unique
+                            );
+
+                        if (horseData == null)
+                        {
+                            this.Monitor.Log(
+                            string.Format("nil")
+                            );
+                            horseData = new HorseData(0, 0, 0);
+                        }
+                        UpgradedHorse horse = new UpgradedHorse(
+                            horseName,
+                            horseData.Friendship,
+                            horseData.Fullness,
+                            horseData.Happiness);
                         Game1.activeClickableMenu = (IClickableMenu)new HorseMenu(horse);
                     }
                 }
@@ -211,21 +228,44 @@ namespace UpgradedHorseMod
         /// <summary>Find the current player's horse.</summary>
         private Horse FindHorse()
         {
-            foreach (GameLocation location in this.GetLocations())
+            foreach (NPC npc in Utility.getAllCharacters())
             {
-                foreach (Horse horse in location.characters.OfType<Horse>())
+                if (npc is Horse)
                 {
-                    if (horse.rider != null)
-                        continue;
-
-                    if (horse.getOwner() == Game1.player)
+                    Horse horse = (Horse)npc;
+                    if (horse.getOwner() == Game1.player) {
                         return horse;
+                    }
                 }
             }
+            //foreach (GameLocation location in this.GetLocations())
+            //{
+            //    foreach (Horse horse in location.characters.OfType<Horse>())
+            //    {
+            //        if (horse.rider != null)
+            //            continue;
+
+            //        if (horse.getOwner() == Game1.player)
+            //            return horse;
+            //    }
+            //}
 
             return null;
         }
 
     }
 
+}
+
+class HorseData
+{
+    public HorseData(double friendship, double fullness, double happiness)
+    {
+        Friendship = friendship;
+        Fullness = fullness;
+        Happiness = happiness;
+    }
+    public double Friendship { get; set; }
+    public double Fullness { get; set; }
+    public double Happiness { get; set; }
 }

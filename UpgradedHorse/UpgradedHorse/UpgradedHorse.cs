@@ -3,18 +3,20 @@ using StardewValley.Characters;
 
 namespace UpgradedHorseMod
 {
-    public class UpgradedHorse : Horse
+    public class UpgradedHorse
     {
-        public double friendshipTowardFarmer;
+        public String displayName;
+        public double friendship;
         public double fullness;
         public double happiness;
 
-        public UpgradedHorse(Horse horse)
+        public UpgradedHorse(String displayName, double friendship, double fullness,
+            double happiness)
         {
-            this.displayName = horse.displayName;
-            this.friendshipTowardFarmer = 1000;
-            this.fullness = 500;
-            this.happiness = 500;
+            this.displayName = displayName;
+            this.friendship = friendship;
+            this.fullness = fullness;
+            this.happiness = happiness;
         }
 
         public string getMoodMessage()

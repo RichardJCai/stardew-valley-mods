@@ -72,7 +72,9 @@ namespace UpgradedHorseMod
 
 
 
-            ClickableTextureComponent textureComponent5 = new ClickableTextureComponent((Math.Round((double)horse.friendshipTowardFarmer, 0) / 10.0).ToString() + "<", new Microsoft.Xna.Framework.Rectangle(this.xPositionOnScreen + IClickableMenu.spaceToClearSideBorder + Game1.tileSize / 2 + 16, this.yPositionOnScreen - Game1.tileSize / 2 + IClickableMenu.spaceToClearTopBorder + Game1.tileSize * 4 - Game1.tileSize / 2, HorseMenu.width - Game1.tileSize * 2, Game1.tileSize), (string)null, "Friendship", Game1.mouseCursors, new Microsoft.Xna.Framework.Rectangle(172, 512, 16, 16), 4f, false);
+            ClickableTextureComponent textureComponent5 = new ClickableTextureComponent(
+                (Math.Round((double)horse.friendship, 0) / 10.0).ToString() + "<",
+                new Microsoft.Xna.Framework.Rectangle(this.xPositionOnScreen + IClickableMenu.spaceToClearSideBorder + Game1.tileSize / 2 + 16, this.yPositionOnScreen - Game1.tileSize / 2 + IClickableMenu.spaceToClearTopBorder + Game1.tileSize * 4 - Game1.tileSize / 2, HorseMenu.width - Game1.tileSize * 2, Game1.tileSize), (string)null, "Friendship", Game1.mouseCursors, new Microsoft.Xna.Framework.Rectangle(172, 512, 16, 16), 4f, false);
             int num10 = 102;
             textureComponent5.myID = num10;
             this.love = textureComponent5;
@@ -83,7 +85,7 @@ namespace UpgradedHorseMod
             this.fullnessLevel = (double)horse.fullness / (double)byte.MaxValue;
 
             this.happinessLevel = (double)horse.happiness / (double)byte.MaxValue;
-            this.loveLevel = (double)horse.friendshipTowardFarmer / 1000.0;
+            this.loveLevel = (double)horse.friendship / 1000.0;
             if (!Game1.options.SnappyMenus)
                 return;
             this.populateClickableComponentList();
@@ -113,7 +115,7 @@ namespace UpgradedHorseMod
                     if (this.textBox.Text.Length <= 0)
                         return;
                     this.horse.displayName = this.textBox.Text;
-                    this.horse.name.Set(this.textBox.Text);
+                    //this.horse.displayName.Set(this.textBox.Text);
                 }
                 else
                 {
@@ -219,7 +221,7 @@ namespace UpgradedHorseMod
                 if (this.textBox.Text.Length > 0)
                 {
                     this.horse.displayName = this.textBox.Text;
-                    this.horse.name.Set(this.textBox.Text);
+                    //this.horse.name.Set(this.textBox.Text);
                 }
                 Game1.playSound("smallSelect");
             }
