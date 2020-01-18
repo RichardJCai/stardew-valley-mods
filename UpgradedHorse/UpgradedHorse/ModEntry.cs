@@ -16,8 +16,9 @@ namespace UpgradedHorseMod
     /// <summary>The mod entry point.</summary>
     public class ModEntry : Mod
     {
-        public static bool horseFed = false;
-        public static int addedHorseSpeed = 0;
+        const int ADDED_HORSE_SPEED = 3;
+        static bool horseFed = false;
+        static bool addedHorseSpeed = false;
 
         public static int openMenuX;
         public static int openMenuY;
@@ -85,7 +86,7 @@ namespace UpgradedHorseMod
             }
 
             horseFed = false;
-            addedHorseSpeed = 0;
+            addedHorseSpeed = false;
         }
 
 
@@ -97,15 +98,15 @@ namespace UpgradedHorseMod
             if (!Context.IsPlayerFree)
                 return;
 
-            if (Game1.player.isRidingHorse() && addedHorseSpeed == 0 && horseFed)
+            if (Game1.player.isRidingHorse() && !addedHorseSpeed && horseFed)
             {
-                addedHorseSpeed = 3;
-                Game1.player.addedSpeed += addedHorseSpeed;
+                addedHorseSpeed = true;
+                Game1.player.addedSpeed += ADDED_HORSE_SPEED;
             }
-            else if (!Game1.player.isRidingHorse() && addedHorseSpeed > 0)
+            else if (!Game1.player.isRidingHorse() && addedHorseSpeed)
             {
-                Game1.player.addedSpeed -= addedHorseSpeed;
-                addedHorseSpeed = 0;
+                addedHorseSpeed = false;
+                Game1.player.addedSpeed -= ADDED_HORSE_SPEED;
             }
             this.Monitor.Log(string.Format("Speed: {0}", Game1.player.addedSpeed), LogLevel.Debug); 
         }
