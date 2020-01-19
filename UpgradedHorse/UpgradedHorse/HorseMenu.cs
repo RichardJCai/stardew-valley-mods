@@ -2,7 +2,6 @@
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
-using StardewValley.Characters;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,33 +15,35 @@ namespace UpgradedHorseMod
 {
     public class HorseMenu : IClickableMenu
     {
-        public new static int width = Game1.tileSize * 6;
-        public new static int height = Game1.tileSize * 8;
+        new static int width = Game1.tileSize * 6;
+        new static int height = Game1.tileSize * 8;
+
         private string hoverText = "";
-        public const int region_okButton = 101;
-        public const int region_love = 102;
-        public const int region_sellButton = 103;
-        public const int region_fullnessHover = 107;
-        public const int region_happinessHover = 108;
-        public const int region_loveHover = 109;
-        public const int region_textBoxCC = 110;
+
+        const int region_okButton = 101;
+        const int region_love = 102;
+        const int region_sellButton = 103;
+        const int region_fullnessHover = 107;
+        const int region_happinessHover = 108;
+        const int region_loveHover = 109;
+        const int region_textBoxCC = 110;
 
         private UpgradedHorse horse;
         private TextBox textBox;
-        public ClickableTextureComponent okButton;
-        public ClickableTextureComponent love;
-        public ClickableComponent fullnessHover;
-        public ClickableComponent happinessHover;
-        public ClickableComponent loveHover;
-        public ClickableComponent textBoxCC;
-        private double fullnessLevel;
-        private double happinessLevel;
-        private double loveLevel;
+        private ClickableTextureComponent okButton;
+        private ClickableTextureComponent love;
+        private ClickableComponent loveHover;
+        private ClickableComponent textBoxCC;
+
+        private double friendshipLevel;
         private bool movinghorse;
 
-        public HorseMenu(UpgradedHorse horse)
+        private ModEntry mod;
+
+        public HorseMenu(UpgradedHorse horse, ModEntry mod)
           : base(Game1.viewport.Width / 2 - HorseMenu.width / 2, Game1.viewport.Height / 2 - HorseMenu.height / 2, HorseMenu.width, HorseMenu.height, false)
         {
+            this.mod = mod;
             Game1.player.Halt();
             HorseMenu.width = Game1.tileSize * 6;
             HorseMenu.height = Game1.tileSize * 8;
@@ -59,7 +60,7 @@ namespace UpgradedHorseMod
                 myID = 110,
                 downNeighborID = 104
             };
-            this.textBox.Text = "Test123333333";
+            this.textBox.Text = horse.displayName;
 
             this.textBox.Selected = false;
 
@@ -73,7 +74,7 @@ namespace UpgradedHorseMod
 
 
             ClickableTextureComponent textureComponent5 = new ClickableTextureComponent(
-                (Math.Round((double)horse.friendship, 0) / 10.0).ToString() + "<",
+                (horse.horseData.Friendship / 10.0).ToString() + "<",
                 new Microsoft.Xna.Framework.Rectangle(this.xPositionOnScreen + IClickableMenu.spaceToClearSideBorder + Game1.tileSize / 2 + 16, this.yPositionOnScreen - Game1.tileSize / 2 + IClickableMenu.spaceToClearTopBorder + Game1.tileSize * 4 - Game1.tileSize / 2, HorseMenu.width - Game1.tileSize * 2, Game1.tileSize), (string)null, "Friendship", Game1.mouseCursors, new Microsoft.Xna.Framework.Rectangle(172, 512, 16, 16), 4f, false);
             int num10 = 102;
             textureComponent5.myID = num10;
@@ -82,10 +83,8 @@ namespace UpgradedHorseMod
             {
                 myID = 109
             };
-            this.fullnessLevel = (double)horse.fullness / (double)byte.MaxValue;
 
-            this.happinessLevel = (double)horse.happiness / (double)byte.MaxValue;
-            this.loveLevel = (double)horse.friendship / 1000.0;
+            this.friendshipLevel = horse.horseData.Friendship / 1000.0;
             if (!Game1.options.SnappyMenus)
                 return;
             this.populateClickableComponentList();
@@ -165,8 +164,16 @@ namespace UpgradedHorseMod
 
         public override void receiveLeftClick(int x, int y, bool playSound = true)
         {
+            mod.Monitor.Log("Left click");
             if (Game1.globalFade)
                 return;
+
+            if (this.okButton != null)
+            {
+                if (this.okButton.containsPoint(x, y))
+                    Game1.exitActiveMenu();
+
+            }
 
         }
 
@@ -213,28 +220,21 @@ namespace UpgradedHorseMod
 
         public override void receiveRightClick(int x, int y, bool playSound = true)
         {
+            mod.Monitor.Log("Right Click");
             if (Game1.globalFade)
                 return;
-            if (this.readyToClose())
+
+            if (this.okButton != null)
             {
-                Game1.exitActiveMenu();
-                if (this.textBox.Text.Length > 0)
-                {
-                    this.horse.displayName = this.textBox.Text;
-                    //this.horse.name.Set(this.textBox.Text);
-                }
-                Game1.playSound("smallSelect");
-            }
-            else
-            {
-                if (!this.movinghorse)
-                    return;
-                Game1.globalFadeToBlack(new Game1.afterFadeFunction(this.prepareForReturnFromPlacement), 0.02f);
+                if (this.okButton.containsPoint(x, y))
+                    Game1.exitActiveMenu();
+
             }
         }
 
         public override void performHoverAction(int x, int y)
         {
+            mod.Monitor.Log("Hover");
             this.hoverText = "";
             if (this.movinghorse)
             {
@@ -254,33 +254,23 @@ namespace UpgradedHorseMod
             if (!this.movinghorse && !Game1.globalFade)
             {
                 b.Draw(Game1.fadeToBlackRect, Game1.graphics.GraphicsDevice.Viewport.Bounds, Color.Black * 0.75f);
+                this.textBox.Draw(b);
                 Game1.drawDialogueBox(this.xPositionOnScreen, this.yPositionOnScreen + Game1.tileSize * 2, HorseMenu.width, HorseMenu.height - Game1.tileSize * 2, false, true, (string)null, false);
 
-                string text1 = this.horse.displayName;
-
-                /* Drawing Love Level */
+                string text1 = this.getFullnessMessage();
                 Utility.drawTextWithShadow(b, text1, Game1.smallFont, new Vector2((float)(this.xPositionOnScreen + IClickableMenu.spaceToClearSideBorder + Game1.tileSize / 2), (float)(this.yPositionOnScreen + IClickableMenu.spaceToClearTopBorder + Game1.tileSize / 4 + Game1.tileSize * 2)), Game1.textColor, 1f, -1f, -1, -1, 1f, 3);
+
+                /* Drawing Friendship Level */
                 int num2 = 0;
-                int num3 = this.loveLevel * 1000.0 % 200.0 >= 100.0 ? (int)(this.loveLevel * 1000.0 / 200.0) : -100;
+                int num3 = this.friendshipLevel * 1000.0 % 200.0 >= 100.0 ? (int)(this.friendshipLevel * 1000.0 / 200.0) : -100;
                 for (int index = 0; index < 5; ++index)
                 {
-                    b.Draw(Game1.mouseCursors, new Vector2((float)(this.xPositionOnScreen + Game1.tileSize * 3 / 2 + 8 * Game1.pixelZoom * index), (float)(num2 + this.yPositionOnScreen - Game1.tileSize / 2 + Game1.tileSize * 5)), new Microsoft.Xna.Framework.Rectangle?(new Microsoft.Xna.Framework.Rectangle(211 + (this.loveLevel * 1000.0 <= (double)((index + 1) * 195) ? 7 : 0), 428, 7, 6)), Color.White, 0.0f, Vector2.Zero, (float)Game1.pixelZoom, SpriteEffects.None, 0.89f);
+                    b.Draw(Game1.mouseCursors, new Vector2((float)(this.xPositionOnScreen + Game1.tileSize * 3 / 2 + 8 * Game1.pixelZoom * index), (float)(num2 + this.yPositionOnScreen - Game1.tileSize / 2 + Game1.tileSize * 5)), new Microsoft.Xna.Framework.Rectangle?(new Microsoft.Xna.Framework.Rectangle(211 + (this.friendshipLevel * 1000.0 <= (double)((index + 1) * 195) ? 7 : 0), 428, 7, 6)), Color.White, 0.0f, Vector2.Zero, (float)Game1.pixelZoom, SpriteEffects.None, 0.89f);
                     if (num3 == index)
                         b.Draw(Game1.mouseCursors, new Vector2((float)(this.xPositionOnScreen + Game1.tileSize * 3 / 2 + 8 * Game1.pixelZoom * index), (float)(num2 + this.yPositionOnScreen - Game1.tileSize / 2 + Game1.tileSize * 5)), new Microsoft.Xna.Framework.Rectangle?(new Microsoft.Xna.Framework.Rectangle(211, 428, 4, 6)), Color.White, 0.0f, Vector2.Zero, (float)Game1.pixelZoom, SpriteEffects.None, 0.891f);
                 }
 
-                // Draw Fullness Level
-                int num4 = 0;
-                int num5 = this.fullnessLevel * 1000.0 % 200.0 >= 100.0 ? (int)(this.loveLevel * 1000.0 / 200.0) : -100;
-                for (int index = 0; index < 5; ++index)
-                {
-                    b.Draw(Game1.mouseCursors, new Vector2((float)(this.xPositionOnScreen + Game1.tileSize * 3 / 2 + 8 * Game1.pixelZoom * index), (float)(num4 + this.yPositionOnScreen - Game1.tileSize / 2 + Game1.tileSize * 6)), new Microsoft.Xna.Framework.Rectangle?(new Microsoft.Xna.Framework.Rectangle(211 + (this.loveLevel * 1000.0 <= (double)((index + 1) * 195) ? 7 : 0), 428, 7, 6)), Color.White, 0.0f, Vector2.Zero, (float)Game1.pixelZoom, SpriteEffects.None, 0.89f);
-                    if (num5 == index)
-                        b.Draw(Game1.mouseCursors, new Vector2((float)(this.xPositionOnScreen + Game1.tileSize * 3 / 2 + 8 * Game1.pixelZoom * index), (float)(num4 + this.yPositionOnScreen - Game1.tileSize / 2 + Game1.tileSize * 6)), new Microsoft.Xna.Framework.Rectangle?(new Microsoft.Xna.Framework.Rectangle(211, 428, 4, 6)), Color.White, 0.0f, Vector2.Zero, (float)Game1.pixelZoom, SpriteEffects.None, 0.891f);
-                }
-
-
-                Utility.drawTextWithShadow(b, Game1.parseText(this.horse.getMoodMessage(), Game1.smallFont, HorseMenu.width - IClickableMenu.spaceToClearSideBorder * 2 - Game1.tileSize), Game1.smallFont, new Vector2((float)(this.xPositionOnScreen + IClickableMenu.spaceToClearSideBorder + Game1.tileSize / 2), (float)(num2 + this.yPositionOnScreen + Game1.tileSize * 7 - Game1.tileSize + Game1.pixelZoom)), Game1.textColor, 1f, -1f, -1, -1, 1f, 3);
+                Utility.drawTextWithShadow(b, Game1.parseText(this.horse.getMoodMessage(), Game1.smallFont, HorseMenu.width - IClickableMenu.spaceToClearSideBorder * 2 - Game1.tileSize), Game1.smallFont, new Vector2((float)(this.xPositionOnScreen + IClickableMenu.spaceToClearSideBorder + Game1.tileSize / 2), (float)(num2 + this.yPositionOnScreen + Game1.tileSize * 6 - Game1.tileSize + Game1.pixelZoom)), Game1.textColor, 1f, -1f, -1, -1, 1f, 3);
                 this.okButton.draw(b);
 
                 if (this.hoverText != null && this.hoverText.Length > 0)
@@ -294,6 +284,18 @@ namespace UpgradedHorseMod
                 this.okButton.draw(b);
             }
             this.drawMouse(b);
+        }
+
+        private string getFullnessMessage()
+        {
+            if (this.horse.horseData.Full)
+            {
+                return String.Format("{0} is full!", horse.displayName);
+            }
+            else
+            {
+                return String.Format("{0} is hungry.", horse.displayName);
+            }
         }
     }
 }

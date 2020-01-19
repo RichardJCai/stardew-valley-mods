@@ -6,9 +6,6 @@ using StardewValley.Characters;
 using StardewValley;
 using System.Linq;
 using StardewValley.Menus;
-using System.Collections.Generic;
-using StardewValley.Buildings;
-using StardewValley.Locations;
 
 
 namespace UpgradedHorseMod
@@ -25,6 +22,9 @@ namespace UpgradedHorseMod
 
         public const int INVENTORY_TAB = 0;
 
+        private int preMountAddedSpeed = 0;
+        private int currentAddedSpeed = 0;
+
         /*********
         ** Public methods
         *********/
@@ -33,19 +33,17 @@ namespace UpgradedHorseMod
         public override void Entry(IModHelper helper)
         {
             helper.Events.Input.ButtonPressed += this.OnButtonPressed;
-            helper.Events.GameLoop.UpdateTicking += this.OnUpdateTicking;
+            helper.Events.GameLoop.UpdateTicked += this.OnUpdateTicked;
             helper.Events.GameLoop.DayStarted += this.OnDayStarted;
             helper.Events.Display.MenuChanged += this.OnMenuChanged;
+            helper.Events.GameLoop.Saving += this.OnSaving;
+            helper.Events.GameLoop.SaveLoaded += this.OnSaveLoaded;
         }
 
         ///// <summary>The method called after a new day starts.</summary>
         ///// <param name="sender">The event sender.</param>
         ///// <param name="e">The event arguments.</param>
-        //private void OnDayStarted(object sender, DayStartedEventArgs e)
-        //{
-        //    //horseFed = true;
-        //}
-
+        ///
         /*********
         ** Private methods
         *********/
@@ -90,25 +88,50 @@ namespace UpgradedHorseMod
         }
 
 
+        private void OnSaveLoaded(object sender, SaveLoadedEventArgs e)
+        {
+            HorseData horseData = LoadHorseDataForPlayer(Game1.player.name);
+
+
+            if (horseData == null)
+            {
+                horseData = new HorseData(0, false);
+            }
+
+            horseData.Full = false;
+
+
+            SaveTempHorseDataForPlayer(Game1.player.name, horseData);
+        }
+
         /// <summary>Raised after the game state is updated (≈60 times per second).</summary>
         /// <param name="sender">The event sender.</param>
         /// <param name="e">The event arguments.</param>
-        private void OnUpdateTicking(object sender, EventArgs e)
+        private void OnUpdateTicked(object sender, UpdateTickedEventArgs e)
         {
-            if (!Context.IsPlayerFree)
+            if (!Context.IsPlayerFree || !Context.IsWorldReady || Game1.paused
+                || Game1.activeClickableMenu != null)
                 return;
 
-            if (Game1.player.isRidingHorse() && !addedHorseSpeed && horseFed)
+            UpdateAddedSpeed();
+        }
+
+        private void UpdateAddedSpeed()
+        {
+            // May need to track addedSpeed before and after getting on horse
+            if (Game1.player.mount != null && !addedHorseSpeed && horseFed)
             {
+                preMountAddedSpeed = Game1.player.addedSpeed;
                 addedHorseSpeed = true;
-                Game1.player.addedSpeed += ADDED_HORSE_SPEED;
+                currentAddedSpeed = preMountAddedSpeed + ADDED_HORSE_SPEED;
             }
-            else if (!Game1.player.isRidingHorse() && addedHorseSpeed)
+            else if (Game1.player.mount == null && addedHorseSpeed)
             {
                 addedHorseSpeed = false;
-                Game1.player.addedSpeed -= ADDED_HORSE_SPEED;
+                // Need to update preMountAddedSpeed when speed buffs expire
+                currentAddedSpeed = preMountAddedSpeed;
+                preMountAddedSpeed = 0;
             }
-            this.Monitor.Log(string.Format("Speed: {0}", Game1.player.addedSpeed), LogLevel.Debug); 
         }
 
         private void OnMenuChanged(object sender, MenuChangedEventArgs args)
@@ -134,6 +157,16 @@ namespace UpgradedHorseMod
 
         }
 
+
+        private void OnSaving(object sender, SavingEventArgs e)
+        {
+            // Same Temp Horse Data to Global On Save
+            HorseData horseData = LoadTempHorseDataForPlayer(Game1.player.name);
+            SaveHorseDataForPlayer(Game1.player.name, horseData);
+
+        }
+
+
         private void FeedHorse(GameLocation currentLocation, int x, int y)
         {
             if (Game1.player.CurrentItem == null)
@@ -146,7 +179,13 @@ namespace UpgradedHorseMod
             // Find if click was on Horse
             foreach (Horse horse in currentLocation.characters.OfType<Horse>())
             {
-                if (Utility.withinRadiusOfPlayer((int) (horse.Position.X), (int) (horse.Position.Y), 1, Game1.player)
+                // Can only feed your own horse
+                if (horse.getOwner() != Game1.player)
+                {
+                    return;
+                }
+
+                if (Utility.withinRadiusOfPlayer((int)(horse.Position.X), (int)(horse.Position.Y), 1, Game1.player)
                     && (Utility.distance((float)x, horse.Position.X, (float)y, horse.Position.Y) <= 100))
                 {
                     // Holding food
@@ -158,7 +197,24 @@ namespace UpgradedHorseMod
                             Game1.drawObjectDialogue(string.Format("{0} ate your {1}.", horse.name, food.Name));
                             Game1.player.reduceActiveItemByOne();
                             horseFed = true;
-                        } else
+
+
+                            HorseData horseData = LoadTempHorseDataForPlayer(Game1.player.name);
+
+
+                            if (horseData == null)
+                            {
+                                horseData = new HorseData(10, true);
+                            }
+
+                            horseData.Friendship += 10;
+                            horseData.Full = true;
+
+                            SaveTempHorseDataForPlayer(Game1.player.name, horseData);
+                            this.Monitor.Log(String.Format("horse data: {0}, {1}", horseData.Friendship, horseData.Full), LogLevel.Debug);
+
+                        }
+                        else
                         {
                             Game1.drawObjectDialogue(string.Format("{0} is full.", horse.name));
                         }
@@ -184,89 +240,67 @@ namespace UpgradedHorseMod
                             string.Format("Horse name: {0}, {1}", horseName, "test")
                             );
 
-                        HorseData horseData = this.Helper.Data.ReadGlobalData<HorseData>(
-                            String.Format("{0}-horse-data", Game1.player.Name) // Not sure if player name is unique
-                            );
+
+                        HorseData horseData = LoadTempHorseDataForPlayer(Game1.player.name);
 
                         if (horseData == null)
                         {
-                            this.Monitor.Log(
-                            string.Format("nil")
-                            );
-                            horseData = new HorseData(0, 0, 0);
+                            horseData = new HorseData(0, false);
                         }
+
+                        this.Monitor.Log(String.Format("HorseData: {0}, {1}", horseData.Friendship, horseData.Full), LogLevel.Debug);
+
                         UpgradedHorse horse = new UpgradedHorse(
-                            horseName,
-                            horseData.Friendship,
-                            horseData.Fullness,
-                            horseData.Happiness);
-                        Game1.activeClickableMenu = (IClickableMenu)new HorseMenu(horse);
+                            horseName, horseData
+                        );
+
+                        Game1.activeClickableMenu = (IClickableMenu)new HorseMenu(horse, this);
                     }
                 }
             }
         }
 
-        /// <summary>Get all available locations.</summary>
-        private IEnumerable<GameLocation> GetLocations()
+        // Not sure if player name is unique
+        public HorseData LoadHorseDataForPlayer(string player)
         {
-            GameLocation[] mainLocations = (Context.IsMainPlayer ? Game1.locations : this.Helper.Multiplayer.GetActiveLocations()).ToArray();
-
-            foreach (GameLocation location in mainLocations.Concat(MineShaft.activeMines))
-            {
-                yield return location;
-
-                if (location is BuildableGameLocation buildableLocation)
-                {
-                    foreach (Building building in buildableLocation.buildings)
-                    {
-                        if (building.indoors.Value != null)
-                            yield return building.indoors.Value;
-                    }
-                }
-            }
+            return this.Helper.Data.ReadGlobalData<HorseData>(
+                String.Format("{0}-horse-data", player) // Not sure if player name is unique
+                );
         }
 
-        /// <summary>Find the current player's horse.</summary>
-        private Horse FindHorse()
+
+        public void SaveHorseDataForPlayer(string player, HorseData horseData)
         {
-            foreach (NPC npc in Utility.getAllCharacters())
-            {
-                if (npc is Horse)
-                {
-                    Horse horse = (Horse)npc;
-                    if (horse.getOwner() == Game1.player) {
-                        return horse;
-                    }
-                }
-            }
-            //foreach (GameLocation location in this.GetLocations())
-            //{
-            //    foreach (Horse horse in location.characters.OfType<Horse>())
-            //    {
-            //        if (horse.rider != null)
-            //            continue;
-
-            //        if (horse.getOwner() == Game1.player)
-            //            return horse;
-            //    }
-            //}
-
-            return null;
+            this.Helper.Data.WriteGlobalData<HorseData>(
+                String.Format("{0}-horse-data", player), horseData
+                );
         }
 
+        public HorseData LoadTempHorseDataForPlayer(string player)
+        {
+            return this.Helper.Data.ReadGlobalData<HorseData>(
+                String.Format("{0}-horse-data-temp", player) // Not sure if player name is unique
+                );
+        }
+
+        public void SaveTempHorseDataForPlayer(string player, HorseData horseData)
+        {
+            this.Helper.Data.WriteGlobalData<HorseData>(
+                String.Format("{0}-horse-data-temp", player), horseData
+                );
+        }
     }
 
 }
 
-class HorseData
+public class HorseData
 {
-    public HorseData(double friendship, double fullness, double happiness)
+    public HorseData(int friendship, bool full)
     {
         Friendship = friendship;
-        Fullness = fullness;
-        Happiness = happiness;
+        Full = full;
     }
-    public double Friendship { get; set; }
-    public double Fullness { get; set; }
-    public double Happiness { get; set; }
+    public int Friendship { get; set; }
+    public bool Full { get; set; }
 }
+
