@@ -230,6 +230,8 @@ namespace UpgradedHorseMod
                     {
                         String horseName = Game1.player.horseName;
 
+                        if (horseName == null) return;
+
                         HorseData horseData = LoadTempHorseDataForPlayer(Game1.player.name);
 
                         if (horseData == null)
