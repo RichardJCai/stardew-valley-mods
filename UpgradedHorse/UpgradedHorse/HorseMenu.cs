@@ -114,7 +114,6 @@ namespace UpgradedHorseMod
                     if (this.textBox.Text.Length <= 0)
                         return;
                     this.horse.displayName = this.textBox.Text;
-                    //this.horse.displayName.Set(this.textBox.Text);
                 }
                 else
                 {

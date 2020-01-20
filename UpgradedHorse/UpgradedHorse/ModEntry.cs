@@ -13,16 +13,15 @@ namespace UpgradedHorseMod
     /// <summary>The mod entry point.</summary>
     public class ModEntry : Mod
     {
-        const int ADDED_HORSE_SPEED = 3;
         static bool horseFed = false;
-        static bool addedHorseSpeed = false;
+        static bool isHorseSpeedAdded = false;
 
         public static int openMenuX;
         public static int openMenuY;
 
         public const int INVENTORY_TAB = 0;
 
-        private int preMountAddedSpeed = 0;
+        private int addedHorseSpeed = 0;
         private int currentAddedSpeed = 0;
 
         /*********
@@ -58,8 +57,6 @@ namespace UpgradedHorseMod
                 return;
             }
 
-
-
             if (e.Button == SButton.MouseRight)
             {
                 Point cursorPosition = Game1.getMousePosition();
@@ -84,7 +81,7 @@ namespace UpgradedHorseMod
             }
 
             horseFed = false;
-            addedHorseSpeed = false;
+            isHorseSpeedAdded = false;
         }
 
 
@@ -99,7 +96,7 @@ namespace UpgradedHorseMod
             }
 
             horseData.Full = false;
-
+            addedHorseSpeed = horseData.Friendship / 200;
 
             SaveTempHorseDataForPlayer(Game1.player.name, horseData);
         }
@@ -114,10 +111,6 @@ namespace UpgradedHorseMod
                 return;
 
             UpdateAddedSpeed();
-            this.Monitor.Log(String.Format("TempSpeed {0}", Game1.player.temporarySpeedBuff), LogLevel.Debug);
-            this.Monitor.Log(String.Format("AddedSpeed {0}", Game1.player.addedSpeed), LogLevel.Debug);
-            this.Monitor.Log(String.Format("Speed {0}", Game1.player.Speed), LogLevel.Debug);
-            this.Monitor.Log(String.Format("Speed {0}", Game1.player.speed), LogLevel.Debug);
         }
 
 
@@ -132,19 +125,15 @@ namespace UpgradedHorseMod
             {
                 speedbuff = Game1.player.addedSpeed - currentAddedSpeed;
             }
-            this.Monitor.Log(String.Format("Speedbuff {0}", speedbuff), LogLevel.Debug);
-            if (Game1.player.mount != null && !addedHorseSpeed && horseFed)
+            if (Game1.player.mount != null && !isHorseSpeedAdded && horseFed)
             {
-                //preMountAddedSpeed = Game1.player.addedSpeed;
-                addedHorseSpeed = true;
-                currentAddedSpeed = ADDED_HORSE_SPEED;
+                isHorseSpeedAdded = true;
+                currentAddedSpeed = addedHorseSpeed;
             }
-            else if (Game1.player.mount == null && addedHorseSpeed)
+            else if (Game1.player.mount == null && isHorseSpeedAdded)
             {
-                addedHorseSpeed = false;
-                // Need to update preMountAddedSpeed when speed buffs expire
+                isHorseSpeedAdded = false;
                 currentAddedSpeed = 0;
-                //preMountAddedSpeed = 0;
             }
 
             Game1.player.addedSpeed = currentAddedSpeed + speedbuff;
@@ -156,21 +145,12 @@ namespace UpgradedHorseMod
             {
                 openMenuX = gm.xPositionOnScreen;
                 openMenuY = gm.yPositionOnScreen;
-
-                //Helper.Events.Display.RenderedActiveMenu += drawTest;
-                //Utility.drawWithShadow(b, Game1.mouseCursors,
-                //    new Vector2((float)(
-                //    (double)(gm.xPositionOnScreen + Game1.tileSize * 5 + Game1.pixelZoom * 2) + (double)Math.Max((float)Game1.tileSize, Game1.dialogueFont.MeasureString(Game1.player.name).X / 2f) + (Game1.player.getPetDisplayName() != null ? (double)Math.Max((float)Game1.tileSize, Game1.dialogueFont.MeasureString(Game1.player.getPetDisplayName()).X) : 0.0)), (float)(gm.yPositionOnScreen + IClickableMenu.borderWidth + IClickableMenu.spaceToClearTopBorder + 7 * Game1.tileSize - Game1.pixelZoom)), new Rectangle(193, 192, 16, 16), Color.White, 0.0f, Vector2.Zero,
-                //    (float)Game1.pixelZoom, false, -1f, -1, -1, 0.35f);
             }
             else if (args.OldMenu is GameMenu ogm)
             {
                 openMenuX = ogm.xPositionOnScreen;
                 openMenuY = ogm.yPositionOnScreen;
             }
-
-            this.Monitor.Log(string.Format("{0}, {1}", openMenuX, openMenuY), LogLevel.Debug);
-
         }
 
 
@@ -189,8 +169,6 @@ namespace UpgradedHorseMod
             {
                 return;
             }
-
-            this.Monitor.Log(string.Format("{0}", Game1.player.CurrentItem.category), LogLevel.Debug);
 
             // Find if click was on Horse
             foreach (Horse horse in currentLocation.characters.OfType<Horse>())
@@ -226,12 +204,10 @@ namespace UpgradedHorseMod
                             horseData.Friendship += 10;
                             horseData.Full = true;
 
+                            // Update addedHorseSpeed if Friendship increases enough
+                            addedHorseSpeed = horseData.Friendship / 200;
+
                             SaveTempHorseDataForPlayer(Game1.player.name, horseData);
-                            this.Monitor.Log(String.Format("horse data: {0}, {1}", horseData.Friendship, horseData.Full), LogLevel.Debug);
-
-                            this.Monitor.Log(String.Format("horse speed: {0}, {1}",horse.speed, horse.addedSpeed), LogLevel.Debug);
-                            horse.speed = 4;
-
                         }
                         else
                         {
@@ -246,19 +222,13 @@ namespace UpgradedHorseMod
         {
             if (Game1.activeClickableMenu is GameMenu menu)
             {
-                this.Monitor.Log(string.Format("{0}", menu.currentTab), LogLevel.Debug);
                 if (menu.currentTab == INVENTORY_TAB)
                 {
                     Vector2 rectangle = new Vector2((float)((double)(openMenuX + Game1.tileSize * 5 + Game1.pixelZoom * 2) + (double)Math.Max((float)Game1.tileSize, Game1.dialogueFont.MeasureString(Game1.player.name).X / 2f) + (Game1.player.getPetDisplayName() != null ? (double)Math.Max((float)Game1.tileSize, Game1.dialogueFont.MeasureString(Game1.player.getPetDisplayName()).X) : 0.0)), (float)(openMenuY + IClickableMenu.borderWidth + IClickableMenu.spaceToClearTopBorder + 7 * Game1.tileSize - Game1.pixelZoom));
-                    this.Monitor.Log(string.Format("{0}, {1}, {2}, {3}", rectangle.X, x, rectangle.Y, y), LogLevel.Debug);
 
                     if (Utility.distance((float)x, rectangle.X, (float)y, rectangle.Y) <= 100)
                     {
                         String horseName = Game1.player.horseName;
-                        this.Monitor.Log(
-                            string.Format("Horse name: {0}, {1}", horseName, "test")
-                            );
-
 
                         HorseData horseData = LoadTempHorseDataForPlayer(Game1.player.name);
 
@@ -266,8 +236,6 @@ namespace UpgradedHorseMod
                         {
                             horseData = new HorseData(0, false);
                         }
-
-                        this.Monitor.Log(String.Format("HorseData: {0}, {1}", horseData.Friendship, horseData.Full), LogLevel.Debug);
 
                         UpgradedHorse horse = new UpgradedHorse(
                             horseName, horseData
