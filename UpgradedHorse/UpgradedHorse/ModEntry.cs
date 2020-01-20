@@ -114,24 +114,40 @@ namespace UpgradedHorseMod
                 return;
 
             UpdateAddedSpeed();
+            this.Monitor.Log(String.Format("TempSpeed {0}", Game1.player.temporarySpeedBuff), LogLevel.Debug);
+            this.Monitor.Log(String.Format("AddedSpeed {0}", Game1.player.addedSpeed), LogLevel.Debug);
+            this.Monitor.Log(String.Format("Speed {0}", Game1.player.Speed), LogLevel.Debug);
+            this.Monitor.Log(String.Format("Speed {0}", Game1.player.speed), LogLevel.Debug);
         }
 
+
+        // Speed boost depends on how much your horse loves you
         private void UpdateAddedSpeed()
         {
-            // May need to track addedSpeed before and after getting on horse
+            int speedbuff = 0;
+
+            // Handle case where player has an existing speed buff
+            // currentAddedSpeed is only speed for horse buff
+            if (Game1.player.addedSpeed > currentAddedSpeed)
+            {
+                speedbuff = Game1.player.addedSpeed - currentAddedSpeed;
+            }
+            this.Monitor.Log(String.Format("Speedbuff {0}", speedbuff), LogLevel.Debug);
             if (Game1.player.mount != null && !addedHorseSpeed && horseFed)
             {
-                preMountAddedSpeed = Game1.player.addedSpeed;
+                //preMountAddedSpeed = Game1.player.addedSpeed;
                 addedHorseSpeed = true;
-                currentAddedSpeed = preMountAddedSpeed + ADDED_HORSE_SPEED;
+                currentAddedSpeed = ADDED_HORSE_SPEED;
             }
             else if (Game1.player.mount == null && addedHorseSpeed)
             {
                 addedHorseSpeed = false;
                 // Need to update preMountAddedSpeed when speed buffs expire
-                currentAddedSpeed = preMountAddedSpeed;
-                preMountAddedSpeed = 0;
+                currentAddedSpeed = 0;
+                //preMountAddedSpeed = 0;
             }
+
+            Game1.player.addedSpeed = currentAddedSpeed + speedbuff;
         }
 
         private void OnMenuChanged(object sender, MenuChangedEventArgs args)
@@ -212,6 +228,9 @@ namespace UpgradedHorseMod
 
                             SaveTempHorseDataForPlayer(Game1.player.name, horseData);
                             this.Monitor.Log(String.Format("horse data: {0}, {1}", horseData.Friendship, horseData.Full), LogLevel.Debug);
+
+                            this.Monitor.Log(String.Format("horse speed: {0}, {1}",horse.speed, horse.addedSpeed), LogLevel.Debug);
+                            horse.speed = 4;
 
                         }
                         else
