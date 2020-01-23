@@ -36,7 +36,6 @@ namespace UpgradedHorseMod
             helper.Events.GameLoop.DayStarted += this.OnDayStarted;
             helper.Events.Display.MenuChanged += this.OnMenuChanged;
             helper.Events.GameLoop.Saving += this.OnSaving;
-            helper.Events.GameLoop.SaveLoaded += this.OnSaveLoaded;
         }
 
         ///// <summary>The method called after a new day starts.</summary>
@@ -71,6 +70,12 @@ namespace UpgradedHorseMod
                 OpenHorseMenu(cursorPosition.X,
                           cursorPosition.Y);
             }
+
+            // Read button from CONFIG
+            if (e.Button == SButton.H)
+            {
+                OpenHorseMenu();
+            }
         }
 
         private void OnDayStarted(object sender, EventArgs e)
@@ -82,17 +87,20 @@ namespace UpgradedHorseMod
 
             horseFed = false;
             isHorseSpeedAdded = false;
-        }
 
+            // Migration
 
-        private void OnSaveLoaded(object sender, SaveLoadedEventArgs e)
-        {
             HorseData horseData = LoadHorseDataForPlayer(Game1.player.name);
-
-
             if (horseData == null)
             {
-                horseData = new HorseData(0, false);
+                // Read Global for migration from 1.0.0
+                horseData = Helper.Data.ReadGlobalData<HorseData>(
+                String.Format("{0}-horse-data", Game1.player.name) // Not sure if player name is unique
+                );
+                if (horseData == null)
+                {
+                    horseData = new HorseData(0, false);
+                }
             }
 
             horseData.Full = false;
@@ -218,14 +226,34 @@ namespace UpgradedHorseMod
             }
         }
 
-        private void OpenHorseMenu(int x, int y)
+        private void OpenHorseMenu(Nullable<int> x = null, Nullable<int> y =null)
         {
+            if (x == null && y == null)
+            {
+                String horseName = Game1.player.horseName;
+
+                if (horseName == null) return;
+
+                HorseData horseData = LoadTempHorseDataForPlayer(Game1.player.name);
+
+                if (horseData == null)
+                {
+                    horseData = new HorseData(0, false);
+                }
+
+                UpgradedHorse horse = new UpgradedHorse(
+                    horseName, horseData
+                );
+
+                Game1.activeClickableMenu = (IClickableMenu)new HorseMenu(horse, this);
+                return;
+            }
+
             if (Game1.activeClickableMenu is GameMenu menu)
             {
                 if (menu.currentTab == INVENTORY_TAB)
                 {
                     Vector2 rectangle = new Vector2((float)((double)(openMenuX + Game1.tileSize * 5 + Game1.pixelZoom * 2) + (double)Math.Max((float)Game1.tileSize, Game1.dialogueFont.MeasureString(Game1.player.name).X / 2f) + (Game1.player.getPetDisplayName() != null ? (double)Math.Max((float)Game1.tileSize, Game1.dialogueFont.MeasureString(Game1.player.getPetDisplayName()).X) : 0.0)), (float)(openMenuY + IClickableMenu.borderWidth + IClickableMenu.spaceToClearTopBorder + 7 * Game1.tileSize - Game1.pixelZoom));
-
                     if (Utility.distance((float)x, rectangle.X, (float)y, rectangle.Y) <= 100)
                     {
                         String horseName = Game1.player.horseName;
@@ -244,15 +272,17 @@ namespace UpgradedHorseMod
                         );
 
                         Game1.activeClickableMenu = (IClickableMenu)new HorseMenu(horse, this);
+                        return;
                     }
                 }
             }
         }
+        // Need to handle migration of data
 
         // Not sure if player name is unique
         public HorseData LoadHorseDataForPlayer(string player)
         {
-            return this.Helper.Data.ReadGlobalData<HorseData>(
+            return this.Helper.Data.ReadSaveData<HorseData>(
                 String.Format("{0}-horse-data", player) // Not sure if player name is unique
                 );
         }
@@ -260,21 +290,21 @@ namespace UpgradedHorseMod
 
         public void SaveHorseDataForPlayer(string player, HorseData horseData)
         {
-            this.Helper.Data.WriteGlobalData<HorseData>(
+            this.Helper.Data.WriteSaveData<HorseData>(
                 String.Format("{0}-horse-data", player), horseData
                 );
         }
 
         public HorseData LoadTempHorseDataForPlayer(string player)
         {
-            return this.Helper.Data.ReadGlobalData<HorseData>(
+            return this.Helper.Data.ReadSaveData<HorseData>(
                 String.Format("{0}-horse-data-temp", player) // Not sure if player name is unique
                 );
         }
 
         public void SaveTempHorseDataForPlayer(string player, HorseData horseData)
         {
-            this.Helper.Data.WriteGlobalData<HorseData>(
+            this.Helper.Data.WriteSaveData<HorseData>(
                 String.Format("{0}-horse-data-temp", player), horseData
                 );
         }

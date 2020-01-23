@@ -287,6 +287,9 @@ namespace UpgradedHorseMod
 
         private string getFullnessMessage()
         {
+            mod.Monitor.Log(
+                String.Format("horsedata, {0}, {1}", this.horse.horseData.Friendship, this.horse.horseData.Full.ToString()), LogLevel.Debug);
+
             if (this.horse.horseData.Full)
             {
                 return String.Format("{0} is full!", horse.displayName);
