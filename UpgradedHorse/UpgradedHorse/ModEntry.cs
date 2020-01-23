@@ -191,7 +191,8 @@ namespace UpgradedHorseMod
                     && (Utility.distance((float)x, horse.Position.X, (float)y, horse.Position.Y) <= 100))
                 {
                     // Holding food
-                    if (Game1.player.CurrentItem.category == -7)
+                    Item currentItem = Game1.player.CurrentItem;
+                    if (IsEdible(currentItem))
                     {
                         if (horseFed == false)
                         {
@@ -209,7 +210,7 @@ namespace UpgradedHorseMod
                                 horseData = new HorseData(10, true);
                             }
 
-                            horseData.Friendship += 10;
+                            horseData.Friendship += CalculateExpGain(currentItem, horseData.Friendship);
                             horseData.Full = true;
 
                             // Update addedHorseSpeed if Friendship increases enough
@@ -277,7 +278,31 @@ namespace UpgradedHorseMod
                 }
             }
         }
-        // Need to handle migration of data
+        private bool IsEdible(Item item)
+        {
+            if (item.getCategoryName() == "Cooking") {
+                return true;
+            }
+
+            if (item.healthRecoveredOnConsumption() > 0)
+            {
+                return true;
+            }
+
+            return false;
+           
+        }
+
+        private int CalculateExpGain(Item item, int currentFriendship)
+        {
+            if (item.getCategoryName() == "Cooking")
+            {
+                return (int)Math.Floor((10 + item.healthRecoveredOnConsumption() / 10) * Math.Pow(1.2, -currentFriendship/200));
+            }
+
+            return (int)Math.Floor((5 + item.healthRecoveredOnConsumption() / 10) * Math.Pow(1.2, -currentFriendship / 200));
+        }
+
 
         // Not sure if player name is unique
         public HorseData LoadHorseDataForPlayer(string player)
