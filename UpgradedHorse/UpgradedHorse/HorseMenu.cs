@@ -163,7 +163,6 @@ namespace UpgradedHorseMod
 
         public override void receiveLeftClick(int x, int y, bool playSound = true)
         {
-            mod.Monitor.Log("Left click");
             if (Game1.globalFade)
                 return;
 
@@ -219,7 +218,6 @@ namespace UpgradedHorseMod
 
         public override void receiveRightClick(int x, int y, bool playSound = true)
         {
-            mod.Monitor.Log("Right Click");
             if (Game1.globalFade)
                 return;
 
@@ -233,7 +231,6 @@ namespace UpgradedHorseMod
 
         public override void performHoverAction(int x, int y)
         {
-            mod.Monitor.Log("Hover");
             this.hoverText = "";
             if (this.movinghorse)
             {
@@ -287,9 +284,6 @@ namespace UpgradedHorseMod
 
         private string getFullnessMessage()
         {
-            mod.Monitor.Log(
-                String.Format("horsedata, {0}, {1}", this.horse.horseData.Friendship, this.horse.horseData.Full.ToString()), LogLevel.Debug);
-
             if (this.horse.horseData.Full)
             {
                 return String.Format("{0} is full!", horse.displayName);

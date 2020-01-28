@@ -104,7 +104,7 @@ namespace UpgradedHorseMod
             }
 
             horseData.Full = false;
-            addedHorseSpeed = horseData.Friendship / 200;
+            addedHorseSpeed = Math.Max(horseData.Friendship / 200, 3);
 
             SaveTempHorseDataForPlayer(Game1.player.name, horseData);
         }
@@ -166,6 +166,10 @@ namespace UpgradedHorseMod
         {
             // Same Temp Horse Data to Global On Save
             HorseData horseData = LoadTempHorseDataForPlayer(Game1.player.name);
+            if (horseData.Friendship > 800 && !horseData.Full)
+            {
+                horseData.Friendship -= 10;
+            }
             SaveHorseDataForPlayer(Game1.player.name, horseData);
 
         }
@@ -199,7 +203,7 @@ namespace UpgradedHorseMod
                             Item food = Game1.player.CurrentItem;
                             Game1.drawObjectDialogue(string.Format("{0} ate your {1}.", horse.name, food.Name));
                             Game1.player.reduceActiveItemByOne();
-                            horseFed = true;
+                            //horseFed = true;
 
 
                             HorseData horseData = LoadTempHorseDataForPlayer(Game1.player.name);
@@ -308,7 +312,7 @@ namespace UpgradedHorseMod
         public HorseData LoadHorseDataForPlayer(string player)
         {
             return this.Helper.Data.ReadSaveData<HorseData>(
-                String.Format("{0}-horse-data", player) // Not sure if player name is unique
+                String.Format("{0}-horse-data", player)
                 );
         }
 
@@ -323,7 +327,7 @@ namespace UpgradedHorseMod
         public HorseData LoadTempHorseDataForPlayer(string player)
         {
             return this.Helper.Data.ReadSaveData<HorseData>(
-                String.Format("{0}-horse-data-temp", player) // Not sure if player name is unique
+                String.Format("{0}-horse-data-temp", player)
                 );
         }
 
