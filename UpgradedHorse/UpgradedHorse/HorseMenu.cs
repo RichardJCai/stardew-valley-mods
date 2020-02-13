@@ -1,11 +1,9 @@
 ﻿using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using xTile.Dimensions;
 using StardewValley;
 using StardewValley.Menus;
 
@@ -36,7 +34,6 @@ namespace UpgradedHorseMod
         private ClickableComponent textBoxCC;
 
         private double friendshipLevel;
-        private bool movinghorse;
 
         private ModEntry mod;
 
@@ -115,12 +112,6 @@ namespace UpgradedHorseMod
                         return;
                     this.horse.displayName = this.textBox.Text;
                 }
-                else
-                {
-                    if (!this.movinghorse)
-                        return;
-                    Game1.globalFadeToBlack(new Game1.afterFadeFunction(this.prepareForReturnFromPlacement), 0.02f);
-                }
             }
             else
             {
@@ -133,8 +124,6 @@ namespace UpgradedHorseMod
         public override void update(GameTime time)
         {
             base.update(time);
-            if (!this.movinghorse)
-                return;
             int num1 = Game1.getOldMouseX() + Game1.viewport.X;
             int num2 = Game1.getOldMouseY() + Game1.viewport.Y;
             if (num1 - Game1.viewport.X < Game1.tileSize)
@@ -145,8 +134,6 @@ namespace UpgradedHorseMod
                 Game1.panScreen(0, -8);
             else if (num2 - (Game1.viewport.Y + Game1.viewport.Height) >= -Game1.tileSize)
                 Game1.panScreen(0, 8);
-            //foreach (Keys pressedKey in Game1.oldKBState.GetPressedKeys())
-            //    this.receiveKeyPress(pressedKey);
         }
 
         public void finishedPlacinghorse()
@@ -175,43 +162,11 @@ namespace UpgradedHorseMod
 
         }
 
-        public override bool overrideSnappyMenuCursorMovementBan()
-        {
-            return this.movinghorse;
-        }
-
-        public void prepareForhorsePlacement()
-        {
-            this.movinghorse = true;
-            Game1.currentLocation = Game1.getLocationFromName("Farm");
-            Game1.globalFadeToClear((Game1.afterFadeFunction)null, 0.02f);
-            this.okButton.bounds.X = Game1.viewport.Width - Game1.tileSize * 2;
-            this.okButton.bounds.Y = Game1.viewport.Height - Game1.tileSize * 2;
-            Game1.displayHUD = false;
-            Game1.viewportFreeze = true;
-            Game1.viewport.Location = new Location(49 * Game1.tileSize, 5 * Game1.tileSize);
-            Game1.panScreen(0, 0);
-            Game1.currentLocation.resetForPlayerEntry();
-            Game1.displayFarmer = false;
-        }
-
-        public void prepareForReturnFromPlacement()
-        {
-            Game1.currentLocation = Game1.player.currentLocation;
-            Game1.currentLocation.resetForPlayerEntry();
-            Game1.globalFadeToClear((Game1.afterFadeFunction)null, 0.02f);
-            this.okButton.bounds.X = this.xPositionOnScreen + HorseMenu.width + 4;
-            this.okButton.bounds.Y = this.yPositionOnScreen + HorseMenu.height - Game1.tileSize - IClickableMenu.borderWidth;
-            Game1.displayHUD = true;
-            Game1.viewportFreeze = false;
-            Game1.displayFarmer = true;
-            this.movinghorse = false;
-        }
 
         public override bool readyToClose()
         {
             this.textBox.Selected = false;
-            if (base.readyToClose() && !this.movinghorse)
+            if (base.readyToClose())
                 return !Game1.globalFade;
             return false;
         }
@@ -232,10 +187,6 @@ namespace UpgradedHorseMod
         public override void performHoverAction(int x, int y)
         {
             this.hoverText = "";
-            if (this.movinghorse)
-            {
-                //
-            }
             if (this.okButton != null)
             {
                 if (this.okButton.containsPoint(x, y))
@@ -247,7 +198,7 @@ namespace UpgradedHorseMod
 
         public override void draw(SpriteBatch b)
         {
-            if (!this.movinghorse && !Game1.globalFade)
+            if (!Game1.globalFade)
             {
                 b.Draw(Game1.fadeToBlackRect, Game1.graphics.GraphicsDevice.Viewport.Bounds, Color.Black * 0.75f);
                 this.textBox.Draw(b);
